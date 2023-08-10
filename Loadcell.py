@@ -1,12 +1,16 @@
-#!/usr/bin/env python3
+import time
 import RPi.GPIO as GPIO  # import GPIO
 from hx711 import HX711  # import the class HX711
+
+
+# 1. Kalibrasi beban jika diperlukan
+
 
 try:
     GPIO.setmode(GPIO.BCM)  # set GPIO pin mode to BCM numbering
     # Create an object hx which represents your real hx711 chip
     # Required input parameters are only 'dout_pin' and 'pd_sck_pin'
-    hx = HX711(dout_pin=6, pd_sck_pin=5)
+    hx = HX711(dout_pin=18, pd_sck_pin=17)
     # measure tare and save the value as offset for current channel
     # and gain selected. That means channel A and gain 128
     err = hx.zero()
@@ -52,12 +56,26 @@ try:
     # desired units. In my case in grams.
     print("Now, I will read data in infinite loop. To exit press 'CTRL + C'")
     input('Press Enter to begin reading')
+    weight = 2000 # 2. Atur beban awal
     print('Current weight on the scale in grams is: ')
     while True:
-        print(hx.get_weight_mean(20), 'g')
-
+        while True: 
+             current_weight = 2000 # hasil disini dibaca menggunakan fungsi dari membaca beban  
+             delta_weight = current_weight - weight # 4. Cek apakah beban saat ini selisih 200 gram dari beban sebelumnya
+             print(hx.get_weight_mean(20), 'g')
+             if delta_weight < 200: # jika selisih air kurang dari 200 maka beri notifikasi untuk minum
+                print("Saatnya minum 200 ml air!") # jika selisih air sudah melebihi atau sama dengan 200 ml maka beri notifikasi yg bagus
+             else:
+                print("Bagus!! Anda sudah minum 200 ml dalam 2 jam ini, Lanjutkan!!")
+                # 5. Update beban ke beban terakhir untuk dibandingkan 2 jam berikutnya
+                weight = current_weight
+                # 6. Jeda 2 jam menggunakan sleep dalam second
+                time.sleep(60)
+ 
 except (KeyboardInterrupt, SystemExit):
-    print('Bye :)')
+    print('Selesai')
+
 
 finally:
     GPIO.cleanup()
+
