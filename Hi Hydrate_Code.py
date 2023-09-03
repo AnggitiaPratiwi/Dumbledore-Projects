@@ -1,13 +1,17 @@
 import time
 import sys
-import RPi.GPIO as GPIO
+import smbus
 from RPi_GPIO_i2c_LCD import lcd
 from telee import *
+from w1thermsensor import W1ThermSensor
 
 GPIO.setmode(GPIO.BCM)
 buzzer = 23
 GPIO.setup(buzzer,GPIO.OUT)
+bus = smbus.SMBus(1)
 
+
+sensor = W1ThermSensor()
 EMULATE_HX711=False
 i2c_address = 0x27
 tampilan = lcd.HD44780(i2c_address)
@@ -26,7 +30,7 @@ hx = HX711(18, 17)
 
 hx.set_reading_format("MSB", "MSB")
 
-hx.set_reference_unit(-522)
+hx.set_reference_unit(-513)
 
 hx.reset()
 
@@ -57,12 +61,20 @@ def lcdDisplay(line1, line2):
     tampilan.set(line2, 2)
     time.sleep(0.5)
 
-#def read_temperature():
-  #  pass
+def read_temperature():
+    try:
+        temperature = sensor.get_temperature()
+        return temperature
+    except Exception as e:
+        print("Error reading temperature:", e)
+        return None
+
 
 def alarm():
-    GPIO.output(buzzer,GPIO.HIGH)
-    GPIO.output(buzzer,GPIO.LOW)
+    for i in range(1):
+        GPIO.output(buzzer,GPIO.HIGH)
+        time.sleep(10)
+        GPIO.output(buzzer,GPIO.LOW)
 
 
 def main():
@@ -78,15 +90,17 @@ def main():
 
         previous_weight = hx.get_weight()
         while True:
+            temperature = read_temperature()
             current_weight = hx.get_weight()
             delta_weight = previous_weight - current_weight
+            print ("suhu air : ", temperature)
             print("Current weight : ", current_weight)
             print("delta weight:", delta_weight)
 
             # cek masih dalam waktu 2 jam tiap 30 menit
             if current_weight > 0:
 
-                if check_count > 3:
+                if check_count > 0:
                 # reset ke nilai awal
                     check_count = 0
                     drunk_water = 0
@@ -97,12 +111,13 @@ def main():
                 #delta_weight = previous_weight - current_weight 
             
                 # Cek untuk refill
-                berat_botol = 225
+                berat_botol = 254
                 if current_weight == berat_botol:
                     print("Ayo refill botolnya!")
                     line1 = ("Ayo refill botolnya!")
                     send_telegram(line1)
                     tampilan.set(line1, 1)
+                    time.sleep(50)
             
 
             
@@ -115,29 +130,34 @@ def main():
                 # berat botol = 225 gr
                     if drunk_water < water_to_drink:
                         print("Saatnya minum 200 ml air!")
-                        line1 = ("Saatnya minum 200 ml air!")
+                        line1 = ("Saatnya minum")
+                        minum = ("200 ml air")
+                        notif = ("Saatnya minum 200 ml air!")
                         alarm()
-                        send_telegram(line1)
+                        send_telegram(notif)
                         tampilan.set(line1, 1)
+                        tampilan.set(minum,2)
+                        time.sleep(20)
                     else:
                         print("Bagus! Anda sudah minum 200 ml dalam 2 jam ini, Lanjutkan!!")
-                        line1 = ("Bagus! Anda sudah")
-                        line2 = ("minum 200 ml")
-                        alarm()
-                        send_telegram(line1)
+                        tele = ("Bagus! Anda sudah minum 200 ml dalam 2 jam ini, Lanjutkan!!")
+                        line1 = ("Bagus!Anda sudah")
+                        line2 = ("minum 200 ml air")
+                        send_telegram(tele)
                         tampilan.set(line1,1)
                         tampilan.set(line2,2)
+                        time.sleep(20)
                     check_count += 1
                     previous_weight = current_weight
             
-            #beban_penuh = 459
+            #beban_penuh = 45
             #if current_weight >= beban_penuh:
              #   check_count > 6
               #  print ("air telah direfill", current_weight)
             # sleep tiap 30 menit
-                time.sleep(5)
+                
             else:
-                print("tidak adak beban")
+                print("tidak ada beban")
             
     except (KeyboardInterrupt, SystemExit):
         print("Membaca beban selesai.")
@@ -146,5 +166,5 @@ def main():
         GPIO.cleanup()
 
 
-if __name__ == "__main__":
+if _name_ == "_main_":
     main()
