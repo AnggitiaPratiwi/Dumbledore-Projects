@@ -113,10 +113,13 @@ def main():
                 # Cek untuk refill
                 berat_botol = 254
                 if current_weight == berat_botol:
-                    print("Ayo refill botolnya!")
-                    line1 = ("Ayo refill botolnya!")
-                    send_telegram(line1)
+                    print("Ayo refill air, airnya sudah habis nih!")
+                    tele = ("Ayo refill air, airnya sudah habis nih!")
+                    line1 = ("Ayo refill air")
+                    line2 = ("airnya sudah habis nih!")
+                    send_telegram(tele)
                     tampilan.set(line1, 1)
+                    tampilan.set(line2,2)
                     time.sleep(50)
             
 
